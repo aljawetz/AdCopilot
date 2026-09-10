@@ -17,7 +17,7 @@ In one line, from Richa's Sprint 1 proposal: AdCopilot turns "your CPA went up" 
 | **Proposal author** | Richa Pragat (Sprint 1 individual proposal; the team formed around this idea) |
 | **Members** | Richa Pragat, Lakshita Rahoria, Shatakshi Chaudhri, Arthur Jawetz, Yongje Shu, Aaron Weng |
 
-Sources: Richa's Sprint 1 proposal (problem, solution shape, metric identities) and the team's Sprint 2 deliverable (validated users, requirements, MVP contract).
+Sources for this README: Richa's Sprint 1 proposal and the team's Sprint 2 deliverable. Full copies live in [`docs/`](docs/) (PDFs plus markdown for agents). [`AGENTS.md`](AGENTS.md) tells later sessions which file wins when they disagree.
 
 ## The problem
 
