@@ -126,11 +126,4 @@ pytest -v
 python -m adcopilot.cli --scenario cpm_spike --json
 ```
 
-Regenerate this PDF for Canvas upload:
-
-```bash
-pip install reportlab
-python scripts/export_sprint3_pdf.py
-```
-
 Repository paths: `adcopilot/metrics.py`, `adcopilot/generate.py`, `adcopilot/engine.py`, `adcopilot/explain.py`, `adcopilot/cli.py`, `tests/test_engine.py`.

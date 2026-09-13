@@ -17,7 +17,6 @@ Original PDFs:
 
 - [docs/AdvancedAI_AdCopilotProposal_RichaPragat.pdf](docs/AdvancedAI_AdCopilotProposal_RichaPragat.pdf)
 - [docs/Sprint2Deliverable_TeamAdDiagnose.pdf](docs/Sprint2Deliverable_TeamAdDiagnose.pdf)
-- [docs/Sprint3Deliverable_TeamAdDiagnose.pdf](docs/Sprint3Deliverable_TeamAdDiagnose.pdf)
 
 ## Non-negotiable product rules
 
