@@ -38,6 +38,13 @@ def test_generate_campaign_length_and_determinism() -> None:
     assert [d.cost for d in a] == [d.cost for d in b]
 
 
+def test_day_to_day_noise_is_present_but_deterministic() -> None:
+    days = generate_campaign("stable")
+    costs = [d.cost for d in days]
+    assert len(set(round(c, 6) for c in costs)) > 1
+    assert generate_campaign("stable")[3].impressions == days[3].impressions
+
+
 @pytest.mark.parametrize("scenario", SCENARIOS)
 def test_seeded_scenario_matches_ground_truth(scenario: str) -> None:
     expected = expected_label(scenario)

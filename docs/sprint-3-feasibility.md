@@ -84,7 +84,7 @@ python -m pytest
 - No UI (F8), no LLM narration (F6 polish), no multi-campaign scan.
 - Visibility shocks also move CVR so CPA rises; the engine prioritizes Lost IS when impressions drop, which matches Google Ads’ budget vs rank framing but is a design choice to revisit in Sprint 4.
 - Thresholds (20% CPA, 70%/40% confidence, 15% impression drop) are fixed constants, not learned.
-- Synthetic series are piecewise-constant (stable then shock), not noisy day-to-day PPC.
+- Synthetic series use a stable-then-shock shape with light hash-seeded day-to-day jitter (±4–5% on rates); not a full noisy PPC simulator.
 
 These limits do not block Proceed: the critical assumption held on the evaluation set.
 

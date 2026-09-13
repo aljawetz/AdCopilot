@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import hashlib
+import random
 from dataclasses import dataclass
 from datetime import date, timedelta
 from typing import Callable
@@ -12,6 +14,13 @@ BASELINE_DAYS = 14
 CURRENT_DAYS = 7
 TOTAL_DAYS = BASELINE_DAYS + CURRENT_DAYS
 START_DATE = date(2026, 8, 1)
+
+# Small day-to-day jitter (below the +20% CPA anomaly bar when aggregated).
+NOISE_IMPRESSIONS = 0.05
+NOISE_CTR = 0.04
+NOISE_CVR = 0.05
+NOISE_CPM = 0.04
+NOISE_LOST_IS = 0.015
 
 SCENARIOS = (
     "cpm_spike",
@@ -44,19 +53,45 @@ def _stable_params() -> DayParams:
     )
 
 
-def _from_params(day: date, p: DayParams) -> DailyMetrics:
-    impressions = p.impressions
-    clicks = impressions * p.ctr
-    cost = (p.cpm / 1000.0) * impressions
-    conversions = clicks * p.cvr
+def _rng_for(scenario: str, day_index: int) -> random.Random:
+    """Stable per-(scenario, day) RNG so identical inputs stay identical."""
+    digest = hashlib.sha256(f"{scenario}:{day_index}".encode()).hexdigest()
+    return random.Random(int(digest[:16], 16))
+
+
+def _jitter(rng: random.Random, scale: float) -> float:
+    """Multiplicative factor in [1-scale, 1+scale], uniform."""
+    return 1.0 + rng.uniform(-scale, scale)
+
+
+def _clamp(value: float, low: float, high: float) -> float:
+    return max(low, min(high, value))
+
+
+def _from_params(day: date, p: DayParams, scenario: str, day_index: int) -> DailyMetrics:
+    rng = _rng_for(scenario, day_index)
+    impressions = p.impressions * _jitter(rng, NOISE_IMPRESSIONS)
+    ctr = _clamp(p.ctr * _jitter(rng, NOISE_CTR), 0.001, 0.5)
+    cvr = _clamp(p.cvr * _jitter(rng, NOISE_CVR), 0.001, 0.5)
+    cpm = max(0.01, p.cpm * _jitter(rng, NOISE_CPM))
+    lost_is_budget = _clamp(
+        p.lost_is_budget + rng.uniform(-NOISE_LOST_IS, NOISE_LOST_IS), 0.0, 0.9
+    )
+    lost_is_rank = _clamp(
+        p.lost_is_rank + rng.uniform(-NOISE_LOST_IS, NOISE_LOST_IS), 0.0, 0.9
+    )
+
+    clicks = impressions * ctr
+    cost = (cpm / 1000.0) * impressions
+    conversions = clicks * cvr
     return DailyMetrics(
         date=day.isoformat(),
         impressions=impressions,
         clicks=clicks,
         cost=cost,
         conversions=conversions,
-        lost_is_budget=p.lost_is_budget,
-        lost_is_rank=p.lost_is_rank,
+        lost_is_budget=lost_is_budget,
+        lost_is_rank=lost_is_rank,
     )
 
 
@@ -132,8 +167,9 @@ _SHOCKS: dict[str, Callable[[DayParams], DayParams] | None] = {
 def generate_campaign(scenario: str) -> list[DailyMetrics]:
     """Return 21 deterministic daily rows: 14 baseline + 7 current.
 
-    The shock (if any) applies only to the current window. Identical
-    scenario names always yield identical series.
+    Each day gets light hash-seeded jitter so series are not flat, while
+    shocks still dominate window aggregates. Identical scenario names
+    always yield identical series.
     """
     if scenario not in _SHOCKS:
         raise ValueError(f"Unknown scenario {scenario!r}; choose from {SCENARIOS}")
@@ -146,7 +182,7 @@ def generate_campaign(scenario: str) -> list[DailyMetrics]:
     for i in range(TOTAL_DAYS):
         day = START_DATE + timedelta(days=i)
         params = current if i >= BASELINE_DAYS else baseline
-        days.append(_from_params(day, params))
+        days.append(_from_params(day, params, scenario, i))
     return days
 
 

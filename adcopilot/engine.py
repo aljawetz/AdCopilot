@@ -11,6 +11,7 @@ from adcopilot.metrics import DailyMetrics, PeriodMetrics, aggregate
 
 ANOMALY_CPA_RISE = 0.20  # flag when current CPA > baseline * 1.20
 IMPRESSION_DROP_THRESHOLD = 0.15
+LOST_IS_RISE_MIN = 0.05  # ignore tiny Lost IS noise
 HIGH_SHARE = 70.0
 HIGH_MARGIN = 40.0
 
@@ -96,18 +97,27 @@ def _visibility_cause(
     baseline: PeriodMetrics,
     current: PeriodMetrics,
 ) -> tuple[str | None, dict[str, float]]:
-    if baseline.impressions <= 0:
+    # Compare per-day impressions so unequal window lengths (14 vs 7) do not
+    # look like a delivery collapse.
+    baseline_daily = baseline.impressions / BASELINE_DAYS
+    current_daily = current.impressions / CURRENT_DAYS
+    if baseline_daily <= 0:
         return None, {}
-    drop = 1.0 - (current.impressions / baseline.impressions)
+    drop = 1.0 - (current_daily / baseline_daily)
     if drop < IMPRESSION_DROP_THRESHOLD:
         return None, {}
 
     d_budget = current.lost_is_budget - baseline.lost_is_budget
     d_rank = current.lost_is_rank - baseline.lost_is_rank
-    if d_budget <= 0 and d_rank <= 0:
+    if d_budget < LOST_IS_RISE_MIN and d_rank < LOST_IS_RISE_MIN:
         return None, {}
 
-    shares = _normalize_shares({"budget": max(d_budget, 0.0), "rank": max(d_rank, 0.0)})
+    shares = _normalize_shares(
+        {
+            "budget": max(d_budget, 0.0),
+            "rank": max(d_rank, 0.0),
+        }
+    )
     leader, lead_share, margin = _leading_with_margin(shares)
     if leader is None:
         return None, shares
