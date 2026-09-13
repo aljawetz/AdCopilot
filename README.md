@@ -21,7 +21,7 @@ Sources for this README: Richa's Sprint 1 proposal, the team's Sprint 2 delivera
 
 ## Sprint 3 baseline (run locally)
 
-Deterministic CPA diagnosis on synthetic campaigns (no live ads API, no LLM):
+Deterministic CPA diagnosis on synthetic campaigns (no live ads API, no LLM). The evaluation harness scores AdCopilot against a dashboard CPC-vs-CVR rival:
 
 ```bash
 python3 -m venv .venv
@@ -29,10 +29,12 @@ source .venv/bin/activate
 pip install -e ".[dev]"
 pytest -v
 python -m adcopilot.cli --scenario cvr_drop
+python -m adcopilot.cli --scenario ctr_drop --campaign-id 1
 python -m adcopilot.cli --scenario ambiguous
+python -m adcopilot.evaluate --n 100 --sweeps
 ```
 
-Seeded shocks: `cpm_spike`, `cvr_drop`, `budget_capped`, `rank_capped`, `ambiguous`, `stable`. Report: [`docs/sprint-3-feasibility.md`](docs/sprint-3-feasibility.md).
+Seeded shocks: `cpm_spike`, `ctr_drop`, `cvr_drop`, `budget_capped`, `rank_capped`, `ambiguous`, `stable`. Report: [`docs/sprint-3-feasibility.md`](docs/sprint-3-feasibility.md).
 
 ## The problem
 
@@ -113,8 +115,8 @@ Sprint 2 example:
 ### Should / Could / Won't
 
 - **Should Have:** F7, cause-matched recommended actions using real Google Ads lever categories (bid strategy, budget, Quality Score, negative keywords).
-- **Could Have:** multi-campaign scanning, a second tracked metric such as ROAS, competitor-pressure context from Auction Insights.
-- **Won't Have this semester:** live Google Ads API, real account data, ML forecasting, automated execution of fixes.
+- **Could Have:** multi-campaign scanning, a second tracked metric such as ROAS. Auction Insights competitor context moved to Won't-Have in Sprint 3 (API field is not public; allowlist closed).
+- **Won't Have this semester:** live Google Ads API, real account data, ML forecasting, automated execution of fixes, Auction Insights.
 
 The diagnostic core is deterministic arithmetic and rules. An LLM only narrates the structured diagnosis. Identical input must produce identical diagnostic output. Diagnoses should return in seconds, using the same metric names a strategist already knows.
 

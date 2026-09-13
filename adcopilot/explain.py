@@ -31,7 +31,11 @@ def explain(diagnosis: Diagnosis) -> str:
     )
 
     if diagnosis.cause == "ambiguous":
-        share_bits = ", ".join(f"{k.upper()} {v:.0f}%" for k, v in sorted(diagnosis.shares.items()))
+        preferred = ("cpm", "ctr", "cvr", "budget", "rank")
+        items = [(k, v) for k, v in diagnosis.shares.items() if k in preferred]
+        if not items:
+            items = list(diagnosis.shares.items())
+        share_bits = ", ".join(f"{k.upper()} {v:.0f}%" for k, v in items)
         body = (
             f"No single driver dominates ({share_bits}). "
             f"Confidence: Low. Refusal: do not name one root cause."

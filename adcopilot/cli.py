@@ -22,13 +22,28 @@ def main(argv: list[str] | None = None) -> int:
         help="Labeled synthetic shock to generate (default: cvr_drop)",
     )
     parser.add_argument(
+        "--seed",
+        type=int,
+        default=None,
+        help="Generator seed (default: package DEFAULT_SEED)",
+    )
+    parser.add_argument(
+        "--campaign-id",
+        type=int,
+        default=0,
+        help="Replicate index under that seed (default: 0)",
+    )
+    parser.add_argument(
         "--json",
         action="store_true",
         help="Print structured Diagnosis JSON instead of the template explanation",
     )
     args = parser.parse_args(argv)
 
-    days = generate_campaign(args.scenario)
+    kwargs = {"campaign_id": args.campaign_id}
+    if args.seed is not None:
+        kwargs["seed"] = args.seed
+    days = generate_campaign(args.scenario, **kwargs)
     result = diagnose(days)
 
     if args.json:

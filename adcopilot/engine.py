@@ -93,9 +93,40 @@ def _decompose_cpc_cvr(baseline: PeriodMetrics, current: PeriodMetrics) -> dict[
     return _normalize_shares(raw)
 
 
+def baseline_cpc_cvr(baseline: PeriodMetrics, current: PeriodMetrics) -> str:
+    """Rival diagnosis: what a strategist can do from Google Ads headline columns.
+
+    CPC and CVR are the columns on the campaign dashboard. A CPC rise is read
+    as a cost problem (returned here as ``cpm``). CPM pressure and CTR collapse
+    look identical in that view; this function cannot tell them apart.
+    """
+    shares = _decompose_cpc_cvr(baseline, current)
+    return "cpm" if shares.get("cpc", 0.0) >= shares.get("cvr", 0.0) else "cvr"
+
+
+def _relative_change(current: float, baseline: float) -> float:
+    if baseline == 0:
+        return 0.0
+    return abs(current - baseline) / abs(baseline)
+
+
+def baseline_biggest_mover(baseline: PeriodMetrics, current: PeriodMetrics) -> str:
+    """Ablation rival: blame whichever of CPM, CTR, CVR moved the most relatively."""
+    rel = {
+        "cpm": _relative_change(current.cpm, baseline.cpm),
+        "ctr": _relative_change(current.ctr, baseline.ctr),
+        "cvr": _relative_change(current.cvr, baseline.cvr),
+    }
+    return max(rel, key=rel.get)
+
+
 def _visibility_cause(
     baseline: PeriodMetrics,
     current: PeriodMetrics,
+    *,
+    high_share: float = HIGH_SHARE,
+    high_margin: float = HIGH_MARGIN,
+    refuse: bool = True,
 ) -> tuple[str | None, dict[str, float]]:
     # Compare per-day impressions so unequal window lengths (14 vs 7) do not
     # look like a delivery collapse.
@@ -121,7 +152,11 @@ def _visibility_cause(
     leader, lead_share, margin = _leading_with_margin(shares)
     if leader is None:
         return None, shares
-    if lead_share >= HIGH_SHARE and margin >= HIGH_MARGIN:
+    if not refuse:
+        return leader, shares
+    # Two-way shares sum to 100, so share >= 70 and margin >= 40 are the same
+    # cut. Both are kept because the 70/40 rule is the three-way leaf gate.
+    if lead_share >= high_share and margin >= high_margin:
         return leader, shares
     return "ambiguous", shares
 
@@ -139,7 +174,13 @@ def _next_step(cause: str | None) -> str | None:
     return steps.get(cause) if cause else None
 
 
-def diagnose(days: Sequence[DailyMetrics]) -> Diagnosis:
+def diagnose(
+    days: Sequence[DailyMetrics],
+    *,
+    refuse: bool = True,
+    high_share: float = HIGH_SHARE,
+    high_margin: float = HIGH_MARGIN,
+) -> Diagnosis:
     """Run the full deterministic pipeline on a daily series.
 
     Expects at least BASELINE_DAYS + CURRENT_DAYS rows in chronological order.
@@ -175,7 +216,13 @@ def diagnose(days: Sequence[DailyMetrics]) -> Diagnosis:
             next_step=None,
         )
 
-    vis_cause, vis_shares = _visibility_cause(baseline, current)
+    vis_cause, vis_shares = _visibility_cause(
+        baseline,
+        current,
+        high_share=high_share,
+        high_margin=high_margin,
+        refuse=refuse,
+    )
     if vis_cause is not None:
         cause = vis_cause
         shares = vis_shares
@@ -207,9 +254,9 @@ def diagnose(days: Sequence[DailyMetrics]) -> Diagnosis:
     # Primary cause is the leading leaf driver among cpm/ctr/cvr.
     leaf_only = {k: leaf[k] for k in ("cpm", "ctr", "cvr")}
     leader, lead_share, margin = _leading_with_margin(leaf_only)
-    if leader is not None and lead_share >= HIGH_SHARE and margin >= HIGH_MARGIN:
+    if leader is not None and (not refuse or (lead_share >= high_share and margin >= high_margin)):
         cause = leader
-        confidence = "high"
+        confidence = "high" if lead_share >= high_share and margin >= high_margin else "low"
     else:
         cause = "ambiguous"
         confidence = "low"

@@ -1,129 +1,110 @@
-# AdCopilot — Sprint 3 Team Deliverable
+# AdCopilot: Technical Feasibility, Baseline, and Proof of Concept
 
-**Technical Feasibility and Baseline**  
-**Team:** AdDiagnose  
-**Members:** Richa Pragat, Lakshita Rahoria, Shatakshi Chaudhri, Aaron Weng, Yongje Shu, Arthur Jawetz  
-**Course:** III 49797, Advanced AI for Industry and Society, Fall 2026  
-**Due:** Tuesday, September 15, 2026 (Canvas)
+**Members:** Richa Pragat, Lakshita Rahoria, Shatakshi Chaudhri, Aaron Weng, Yongje Shu, Arthur Jawetz
 
-This document is the Sprint 3 feasibility report. The working baseline lives in the project repository (`adcopilot/` package, `tests/`, CLI). Scope remains governed by the Sprint 2 MVP contract; this sprint only proves the highest-risk technical assumption.
+This report tests two claims in the Sprint 2 MVP. First, that a deterministic split of a CPA change can name the driving cause, or refuse when the data will not support one. Second, that this split beats the rule a strategist can already run from the Google Ads campaign table. The working prototype is `adcopilot/`. Scope is unchanged from Sprint 2.
+
+Results below use seed `20260911` and:
+
+```bash
+python -m adcopilot.evaluate --n 100 --sweeps
+```
 
 ---
 
 ## 1. Technical and Data Feasibility
 
-### Highest-risk assumptions
+The diagnostic core runs on a laptop. It uses synthetic Search-style campaigns, no live Google Ads connection, no trained model, and no extra Python packages.
 
-| Risk | Why it matters | Mitigation tested this sprint |
-| --- | --- | --- |
-| Synthetic data may not support real diagnostic logic | Without live Google Ads access, the engine must still isolate causes on representative fields | Seeded shocks use impressions, clicks, cost, conversions, Search Lost IS (budget), and Search Lost IS (rank) |
-| Decomposition may not isolate a known driver | The product promise is cause, not just “CPA moved” | Log-share attribution of `Δln(CPA)` across CPM, CTR, and CVR; nested CPC vs CVR shares |
-| Ambiguous cases may force a false single cause | False certainty is worse than a refusal for paid media | Confidence rule: High only if leading share ≥ 70% and margin over next ≥ 40 points; else refuse |
-| Sparse conversions / zero denominators | CPA and CVR break when clicks or conversions are zero | Safe division; baseline requires conversions; generator keeps positive volumes |
-| Threshold sensitivity | A brittle +20% CPA rule could over/under-flag | Documented constants; stable scenario stays unflagged; shocks clear the bar |
-| LLM narration drift | Model inventing a cause breaks trust | Deferred. Sprint 3 uses template explanations filled only from structured fields |
+|                          | Current build                                                                                                                                                                                                             | Live Google Ads path                 |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
+| Data                     | Daily impressions, clicks, cost, conversions, Lost IS (budget), Lost IS (rank). CTR, CVR, CPC, CPM, and CPA are computed. The columns match a Search campaign report. The rows are generated, not pulled from an account. | Same columns from the Google Ads API |
+| APIs                     | None                                                                                                                                                                                                                      | Google Ads API                       |
+| Models                   | None. Diagnosis is arithmetic. An LLM, if added later, only narrates numbers the engine already produced.                                                                                                                 | Optional narration model             |
+| Infrastructure and tools | Python 3.11, pytest, this repository                                                                                                                                                                                      | Same                                 |
+| Hardware                 | Laptop. No GPU.                                                                                                                                                                                                           | Same for the diagnostic core         |
+| Access                   | None required                                                                                                                                                                                                             | Same                                 |
+| Dependencies             | Zero runtime packages                                                                                                                                                                                                     | Google Ads client library            |
 
-### Data, APIs, models, infrastructure
+Two Google constraints change what we can promise later, even though this build does not call the API.
 
-- **Data:** synthetic only. Daily Google Ads-shaped columns; no PII; no real accounts.
-- **APIs:** none this semester for ads. No Google Ads API, no partner credentials.
-- **Models:** no trained ML. Diagnosis is deterministic arithmetic and rules. An optional LLM for narration remains Sprint 4+ and must not invent causes.
-- **Infrastructure:** local Python ≥ 3.11, pytest. No cloud GPU, no paid inference for the baseline.
-- **Dependencies:** zero runtime dependencies. Dev: pytest only.
-- **Access restrictions:** none for synthetic data. Live platform access remains Won't Have.
+1. Auction Insights (competitor context) appears in the UI and in the API docs, but Google marks those fields "not publicly available." The Sprint 2 Could-Have for competitor context is therefore not buildable. [11] [13]
+2. Search Lost IS (budget) is campaign-level only, and impression-share columns arrive 1-2 days late. Budget vs rank cannot be split by ad group, and those fields cannot support a same-day diagnosis. [12]
 
-### Metric identities (locked)
+Live API access remains Won't-Have. Auction Insights moves from Could-Have to Won't-Have.
 
-- `CTR = clicks / impressions`
-- `CVR = conversions / clicks`
-- `CPC = cost / clicks`
-- `CPM = (cost / impressions) × 1000`
-- `CPA = cost / conversions = CPC / CVR`
-- `CPC = (CPM / 1000) / CTR`
-- Log form used for shares: `Δln(CPA) = Δln(CPM) − Δln(CTR) − Δln(CVR)`
-
-Windows: trailing baseline = prior 14 days; current = last 7 days. Anomaly if current CPA exceeds baseline mean by more than 20%. Visibility path: if impressions fall ≥ 15% and Lost IS rises, classify budget-capped vs rank-capped when one Lost IS delta dominates.
+Three technical risks showed up in the prototype. A click-rate collapse and a costlier auction both present as CPC up in the UI, which is the case the product exists to separate. A 70/40 refuse rule still names a cause on about 70% of campaigns. At very low volume, a 20% CPA alarm fires on noise.
 
 ---
 
-## 2. Baseline and Feasibility Prototype
+## 2. Baseline and Prototype
 
-### What we built
+CPA is the cost of one conversion. When it jumps, Google Ads puts two headline numbers in front of the strategist: cost per click (CPC) and conversion rate (CVR). A more expensive auction raises CPC. A drop in click-through rate also raises CPC. The fixes go in opposite directions.
 
-A reproducible Python package that (1) generates labeled synthetic campaigns, (2) detects abnormal CPA movement, (3) decomposes the change or classifies visibility loss, (4) assigns High confidence or refuses, and (5) emits a numbers-cited template explanation via CLI.
+AdCopilot splits the CPA change with an identity that already holds in the data:
 
-```text
-python -m adcopilot.cli --scenario cvr_drop
-python -m adcopilot.cli --scenario ambiguous
-python -m pytest
+```
+CPA = CPM / (1000 × CTR × CVR)
 ```
 
-### Seeded evaluation (ground truth)
+The three terms are price (CPM), clicks (CTR), and conversions (CVR). When one term is clearly largest, the engine names it and quotes the numbers. When two terms are close, it reports that the cause is unknown.
 
-| Scenario | Injected shock | Expected | Result |
-| --- | --- | --- | --- |
-| `cpm_spike` | CPM ×2, CTR/CVR fixed | High, CPM | Pass |
-| `cvr_drop` | CVR ×0.5, costs fixed | High, CVR | Pass |
-| `budget_capped` | Impressions down, Lost IS (budget) up | High, budget | Pass |
-| `rank_capped` | Impressions down, Lost IS (rank) up | High, rank | Pass |
-| `ambiguous` | CPM and CVR both move | Refuse (low) | Pass |
-| `stable` | No shock | No anomaly | Pass |
+The baseline is that dashboard rule: whichever of CPC and CVR moved more, with a CPC rise read as a cost problem. It cannot tell a CPM rise from a CTR collapse. Both look like CPC up. The product claim is that the three-way split can.
 
-**Baseline score:** 5/5 labeled shocks diagnosed or refused correctly; stable not flagged. Refusal correctness on the ambiguous seed: 100%. Identical input yields identical JSON (`tests/test_identical_input_identical_json`).
+The comparison used 700 synthetic campaigns with planted causes and noisy click and conversion counts. One hundred campaigns in each of seven buckets: price doubled, click rate halved, conversion rate halved, budget cap, rank cap, two causes at once (refuse), and noise only (do not flag). Fourteen quiet days, then seven shocked days. Budget and rank shocks leave conversion rate alone, so the delivery path is not picking up a conversion drop.
 
-### Sample diagnosis (CVR drop)
+Both methods use the same alarm: CPA up more than 20%. They differ on the cause.
 
-> CPA rose +100.0% ($6.00 → $12.00). CVR drove the change (4.00% → 2.00%; share 100%). CPC held near $0.24 → $0.24. Diagnosis: conversion-quality issue. Confidence: High. Next: Check landing page, offer, and conversion tracking before changing bids.
+|                     | When it names a cause, how often is it right? | How often does it name a cause? |
+| ------------------- | --------------------------------------------- | ------------------------------- |
+| Dashboard rule (B1) | 34%                                           | 85%                             |
+| AdCopilot (B2)      | 96%                                           | 70%                             |
 
-### Sample refusal (ambiguous)
+On the 100 campaigns where click rate collapsed, the dashboard rule called every one a cost problem. AdCopilot named CTR on 95 of them. Price-up and conversion-drop are already visible in CPC vs CVR. Click-rate collapse is the case that needs the extra split.
 
-> CPA rose +101.4% ($6.00 → $12.08). No single driver dominates (CPM 53%, CVR 47%). Confidence: Low. Refusal: do not name one root cause.
+The engine stayed quiet on 94% of mixed cases (Sprint 2 targeted 100%). Sprint 2 also targeted 85% accuracy across the whole set. Those two targets conflict. Two hundred of the 700 campaigns should not receive a named cause, so a perfect run still only reaches 71% if silence counts as a miss. Of the 500 campaigns with a single planted cause, the engine recovered 94%.
 
-### Limitations of this baseline
+Two ablations sit between B1 and B2: blaming the metric with the largest relative change, and running the three-way split with the refuse rule off. With refusal off, the split is right 80% of the times it speaks. With refusal on, 96%. Loosening 70/40 to 55/15 answers a little more often and only refuses 57% of mixed cases. The shipped gate stays 70/40.
 
-- No UI (F8), no LLM narration (F6 polish), no multi-campaign scan.
-- Visibility shocks also move CVR so CPA rises; the engine prioritizes Lost IS when impressions drop, which matches Google Ads’ budget vs rank framing but is a design choice to revisit in Sprint 4.
-- Thresholds (20% CPA, 70%/40% confidence, 15% impression drop) are fixed constants, not learned.
-- Synthetic series use a stable-then-shock shape with light hash-seeded day-to-day jitter (±4–5% on rates); not a full noisy PPC simulator.
+At about 300 impressions a day, a 20% CPA rule produces 38% false alarms. Around 6,000 a day the series is still noisy. At 15,000 it settles. Below roughly 6,000 impressions/day the prototype should refuse and say the window is too thin.
 
-These limits do not block Proceed: the critical assumption held on the evaluation set.
-
----
-
-## 3. Findings and Project Decision
-
-### Decision: **Proceed**
-
-Evidence from the POC supports continuing AdCopilot as scoped in Sprint 2.
-
-| Question | Finding |
-| --- | --- |
-| Can we diagnose without live APIs? | Yes, with Google Ads-shaped synthetic fields and seeded ground truth |
-| Can deterministic math isolate CPM vs CVR vs visibility? | Yes on single-cause seeds |
-| Can we refuse when mixed? | Yes; ambiguous seed returns low confidence and no single cause |
-| Do we need ML or paid infra this semester? | No for the diagnostic core |
-
-### Scope impact
-
-- **Unchanged Must Have:** F1–F6, F8 (UI remains later).
-- **Should Have:** F7 remains cause-matched next steps (template lookup already sketches this; not auto-executed).
-- **Won't Have holds:** live Google Ads API, real account data, ML forecasting, automated fix execution.
-- **Modify (minor, technical only):** lock the Sprint 3 thresholds and log-share method as the Semester 1 diagnostic baseline unless evaluation later shows systematic misses on richer synthetic noise.
-
-### Next sprint implication (Sprint 4)
-
-Architecture and implementation plan should treat this package as the diagnostic core, then add: richer synthetic noise, optional LLM narration constrained to structured JSON, and the F8 interface (trend chart, anomaly list, diagnosis panel).
-
----
-
-## Appendix: How to reproduce
+Worked example, `ctr_drop` campaign 1. CPA went from $6.68 to $13.28. Google Ads shows CPC from $0.26 to $0.58, so B1 says cost. Price only moved from $11.93 to $12.70. Click rate halved, 4.5% to 2.2%. Raising bids here spends more against the same weak ads.
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -e ".[dev]"
-pytest -v
-python -m adcopilot.cli --scenario cpm_spike --json
+python -m adcopilot.cli --scenario ctr_drop --campaign-id 1
+python -m adcopilot.cli --scenario ambiguous
+python -m pytest -v
 ```
 
-Repository paths: `adcopilot/metrics.py`, `adcopilot/generate.py`, `adcopilot/engine.py`, `adcopilot/explain.py`, `adcopilot/cli.py`, `tests/test_engine.py`.
+---
+
+## 3. Findings and Decision
+
+Click-rate collapse is the case that justified the tool, and the evaluation recovered it. API access, GPUs, and paid datasets do not block the rest of the semester.
+
+The Sprint 2 success pair (85% overall accuracy and 100% refusal) cannot be one score once refusals exist. Auction Insights is not available through the API. Tiny accounts will look broken if a 20% CPA flag always fires.
+
+**Decision: Proceed with Modification.**
+
+1. Report three rates: how often we answer (aim 60% or more), how often those answers are right (aim 95% or more), how often we refuse mixed cases (aim 90% or more). Keep 70/40.
+2. Below about 6,000 impressions/day, refuse and say the window is too thin.
+3. Move Auction Insights from Could-Have to Won't-Have.
+4. Sprint 4: the UI (F8), and a check that every number in LLM text already sits in the diagnosis object.
+
+Must-haves F1 to F6 and F8 stay. Cause-matched next step (F7) stays Should-Have.
+
+All figures come from the generator. Live accounts will score lower. Calling a dominant CTR term "fix the ads" is a label we assigned; nobody in this study confirmed it. Detection is one-sided (CPA up). This sprint has no UI.
+
+---
+
+## References
+
+Sprint 2 references [1] to [9] still apply.
+
+**[10]** Google Ads API, access levels: test tokens stay on test accounts; Explorer 2,880/day on production; Basic 15,000/day; Standard unlimited after review. [https://developers.google.com/google-ads/api/docs/api-policy/access-levels](https://developers.google.com/google-ads/api/docs/api-policy/access-levels)
+
+**[11]** Google Ads API Forum, 3 Nov 2025: Auction Insights is not public in the API for any campaign type; whitelist closed. [https://groups.google.com/g/adwords-api/c/xhwhOAA5854](https://groups.google.com/g/adwords-api/c/xhwhOAA5854)
+
+**[12]** Google Ads Help, impression share: Lost IS (budget) is campaign-level; those columns update in 1-2 days. [https://support.google.com/google-ads/answer/7103314](https://support.google.com/google-ads/answer/7103314)
+
+**[13]** Google Ads API Metrics: `auction_insight_search_` marked "not publicly available." [https://developers.google.com/google-ads/api/reference/rpc/v23/Metrics](https://developers.google.com/google-ads/api/reference/rpc/v23/Metrics)
