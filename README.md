@@ -17,7 +17,22 @@ In one line, from Richa's Sprint 1 proposal: AdCopilot turns "your CPA went up" 
 | **Proposal author** | Richa Pragat (Sprint 1 individual proposal; the team formed around this idea) |
 | **Members** | Richa Pragat, Lakshita Rahoria, Shatakshi Chaudhri, Arthur Jawetz, Yongje Shu, Aaron Weng |
 
-Sources for this README: Richa's Sprint 1 proposal and the team's Sprint 2 deliverable. Full copies live in [`docs/`](docs/) (PDFs plus markdown for agents). [`AGENTS.md`](AGENTS.md) tells later sessions which file wins when they disagree.
+Sources for this README: Richa's Sprint 1 proposal, the team's Sprint 2 deliverable, and the Sprint 3 feasibility baseline. Full copies live in [`docs/`](docs/) (PDFs plus markdown for agents). [`AGENTS.md`](AGENTS.md) tells later sessions which file wins when they disagree.
+
+## Sprint 3 baseline (run locally)
+
+Deterministic CPA diagnosis on synthetic campaigns (no live ads API, no LLM):
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -e ".[dev]"
+pytest -v
+python -m adcopilot.cli --scenario cvr_drop
+python -m adcopilot.cli --scenario ambiguous
+```
+
+Seeded shocks: `cpm_spike`, `cvr_drop`, `budget_capped`, `rank_capped`, `ambiguous`, `stable`. Report: [`docs/sprint-3-feasibility.md`](docs/sprint-3-feasibility.md).
 
 ## The problem
 

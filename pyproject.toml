@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "adcopilot"
+version = "0.1.0"
+description = "Deterministic CPA diagnosis baseline for AdCopilot (Sprint 3)"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
+[project.scripts]
+adcopilot = "adcopilot.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["adcopilot*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
