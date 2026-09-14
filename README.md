@@ -2,24 +2,21 @@
 
 An explainable diagnostic copilot for digital advertisers.
 
-Private workspace for **Team AdDiagnose** in CMU III 49797, Special Topics: Advanced AI for Industry and Society (Fall 2026).
+AdDiagnose is a domain analysis of the ad-campaign diagnostic workflow, from metric monitoring to root-cause investigation, plus an AI-driven enhancement that automates the diagnosis platforms leave to manual guesswork. The product built from that analysis is **AdCopilot**: it diagnoses *why* a Google Ads-style campaign's cost-per-acquisition (CPA) moved, instead of only reporting that it moved.
 
-AdDiagnose is a domain analysis of the ad-campaign diagnostic workflow, from metric monitoring to root-cause investigation, plus an AI-driven enhancement that automates the diagnosis platforms leave to manual guesswork. The product we are building from that analysis is **AdCopilot**: it diagnoses *why* a Google Ads-style campaign's cost-per-acquisition (CPA) moved, instead of only reporting that it moved.
+In one line: AdCopilot turns "your CPA went up" into "your CPA went up because CVR fell, here's the fix," through a testable pipeline that computes the diagnosis deterministically and explains it in plain language, refusing to guess when the data will not support a confident answer.
 
-In one line, from Richa's Sprint 1 proposal: AdCopilot turns "your CPA went up" into "your CPA went up because CVR fell, here's the fix," through a testable pipeline that computes the diagnosis deterministically and explains it in plain language, refusing to guess when the data will not support a confident answer.
-
-## Team
+## Contributors
 
 | | |
 | --- | --- |
 | **Team** | AdDiagnose |
 | **Product** | AdCopilot |
-| **Proposal author** | Richa Pragat (Sprint 1 individual proposal; the team formed around this idea) |
 | **Members** | Richa Pragat, Lakshita Rahoria, Shatakshi Chaudhri, Arthur Jawetz, Yongje Shu, Aaron Weng |
 
-Sources for this README: Richa's Sprint 1 proposal, the team's Sprint 2 deliverable, and the Sprint 3 feasibility baseline. Full copies live in [`docs/`](docs/) (PDFs plus markdown for agents). [`AGENTS.md`](AGENTS.md) tells later sessions which file wins when they disagree.
+Design briefs and feasibility notes live in [`docs/`](docs/). [`AGENTS.md`](AGENTS.md) tells coding agents which document wins when they disagree.
 
-## Sprint 3 baseline (run locally)
+## Run locally
 
 Deterministic CPA diagnosis on synthetic campaigns (no live ads API, no LLM). The evaluation harness scores AdCopilot against a dashboard CPC-vs-CVR rival:
 
@@ -56,7 +53,7 @@ Google Ads is strong at setup, automated bidding, and reporting. The Recommendat
 - **Third-party management tools** (Optmyzr, WordStream): more automation and reporting, still not a root-cause diagnosis of a specific change.
 - **Manual investigation** (spreadsheets): the default. Analysts export reports and walk the metric relationships by hand. Slow, error-prone, and inconsistent, and it assumes expertise many teams do not have.
 
-The unmet need from the proposal: no tool automatically diagnoses the root cause of a metric change and explains it in plain language, grounded in the specific numbers.
+The unmet need: no tool automatically diagnoses the root cause of a metric change and explains it in plain language, grounded in the specific numbers.
 
 **Value proposition:** for PPC strategists and marketers who cannot tell why a campaign's cost metrics changed, AdCopilot gives an instant, plain-language root-cause diagnosis with a matched recommended fix, by decomposing the metric math deterministically and narrating the result. Platform engines and spreadsheets report that a metric moved and prescribe generic actions.
 
@@ -70,7 +67,7 @@ Architectural rule: the deterministic core computes; the LLM only narrates. Noth
 4. **Explanation.** An LLM turns that structured diagnosis into a numbers-cited explanation and a recommended action. Mixed factors get a low-confidence refusal, not a guess.
 5. **Output.** The user sees why the metric moved and what to do, in seconds instead of an hour of spreadsheet work.
 
-Sprint 1 example:
+Example:
 
 > Your CPA rose from $10 to $14 this week. CPC held steady at $0.50, but CVR dropped from 5% to 3.6%. This is a conversion-quality issue, not a cost issue. Investigate recent landing page or targeting changes rather than adjusting your bid. Confidence: High.
 
@@ -90,13 +87,13 @@ Buyers are agency owners or in-house growth/marketing leads. Beneficiaries inclu
 - **UC3.** Cause-matched next step (Should Have): a deterministic investigation or proposed action (for example, landing-page and tracking checks for a CVR drop). The system never writes back to campaigns.
 - **UC4.** Explain the diagnosis to stakeholders: what changed, why, how confident, what next, with the exact supporting metrics.
 
-## Semester MVP
+## Current MVP
 
-AdCopilot does **not** connect to a live Google Ads account. Google Ads is the research basis for the metric taxonomy (Impression Share, Search Lost IS due to budget, Search Lost IS due to rank, Auction Insights, CPC, CVR, CPM, CTR). The semester build uses **synthetic data** shaped like those reporting fields. No live account access, no PII.
+AdCopilot does **not** connect to a live Google Ads account. Google Ads is the research basis for the metric taxonomy (Impression Share, Search Lost IS due to budget, Search Lost IS due to rank, Auction Insights, CPC, CVR, CPM, CTR). The build uses **synthetic data** shaped like those reporting fields. No live account access, no PII.
 
 **Definition of done:** a user loads a campaign, the system flags an abnormal CPA movement, identifies the driving cause (or refuses when ambiguous), and shows a plain-language, numbers-cited diagnosis in a usable interface, across all seeded scenarios. The synthetic generator seeds labeled shock cases (competitor-driven CPM spike, landing-page CVR drop, budget/rank visibility loss, and an ambiguous multi-factor case) so known causes double as evaluation ground truth.
 
-Sprint 2 example:
+Example:
 
 > CPA rose +64% ($22.57 → $36.90). CPM drove 87% of the change (CTR 7%, CVR 5%); leading driver CPM with margin over next 80%. Confidence: High. Diagnosis: auction price pressure.
 
@@ -115,8 +112,8 @@ Sprint 2 example:
 ### Should / Could / Won't
 
 - **Should Have:** F7, cause-matched recommended actions using real Google Ads lever categories (bid strategy, budget, Quality Score, negative keywords).
-- **Could Have:** multi-campaign scanning, a second tracked metric such as ROAS. Auction Insights competitor context moved to Won't-Have in Sprint 3 (API field is not public; allowlist closed).
-- **Won't Have this semester:** live Google Ads API, real account data, ML forecasting, automated execution of fixes, Auction Insights.
+- **Could Have:** multi-campaign scanning, a second tracked metric such as ROAS. Auction Insights competitor context is Won't-Have (API field is not public; allowlist closed).
+- **Won't Have for now:** live Google Ads API, real account data, ML forecasting, automated execution of fixes, Auction Insights.
 
 The diagnostic core is deterministic arithmetic and rules. An LLM only narrates the structured diagnosis. Identical input must produce identical diagnostic output. Diagnoses should return in seconds, using the same metric names a strategist already knows.
 
@@ -136,35 +133,10 @@ The diagnostic core is deterministic arithmetic and rules. An LLM only narrates 
 
 **Main risks:** synthetic data that does not look like real PPC; LLM narration drifting off the computed diagnosis (constrain it to structured output); scope creep past the Won't Have line.
 
-## Course
+## Origin
 
-Carnegie Mellon University, Integrated Innovation Institute (San Jose)
+Started as a team project in Carnegie Mellon University's Integrated Innovation Institute course *Special Topics: Advanced AI for Industry and Society*. Product requirements and feasibility notes in [`docs/`](docs/) reflect that design process.
 
-**III 49797** · Special Topics: Advanced AI for Industry and Society · Fall 2026 · 12 units
+## Data and privacy
 
-Project-based applied learning. Teams of 4–6 ship a working end-to-end system, not a mockup. Instructor: Dr. Catherine Fang. Meetings: Tuesday, 10:30 AM–12:50 PM, San Jose. [Canvas](https://canvas.cmu.edu/courses/56350) remains the source of truth for assignments and grades.
-
-Each student also completes NVIDIA DLI [Building RAG Agents with LLMs](https://learn.nvidia.com/courses/course-detail?course_id=course-v1:DLI+S-FX-15+V1) (`LLM Certificate Completion` on Canvas). Sign up with `@andrew.cmu.edu`. Dr. Fang provides the promo code.
-
-### Sprint calendar (Canvas due dates, US Pacific)
-
-| Due | Deliverable |
-| --- | --- |
-| Tue Sep 1 | Sprint 1: Problem discovery and solution proposal (individual) |
-| Thu Sep 3 | Team placement (individual) |
-| Tue Sep 8 | Sprint 2: Problem validation, requirements, and MVP scope |
-| Tue Sep 15 | Sprint 3: Technical feasibility and baseline |
-| Tue Sep 22 | Sprint 4: System architecture and implementation plan |
-| Tue Sep 29 | Sprint 5: Core AI/technology prototype |
-| Tue Oct 6 | Sprint 6: End-to-end alpha system |
-| Tue Oct 13 | Fall break |
-| Tue Oct 20 | Sprint 7: User/stakeholder and impact validation |
-| Tue Oct 27 | Sprint 8: Robustness, responsible AI, and system improvement |
-| Tue Nov 3 | Democracy Day |
-| Tue Nov 10 | NVIDIA LLM certificate completion |
-| Tue Nov 17 | Sprint 9: Beta release and independent testing |
-| Tue Dec 1 | Final product, impact, and project defense |
-
-Final packet: working system, this GitHub repo, report, deployment/user docs, presentation and live demo, demo video (60 seconds or less), individual contribution statement. Scoring: 50% Must Have solution, 30% technical and impact evidence, 20% live defense and documentation.
-
-Keep this repository private. Do not push live account data, PII, or partner briefs to public remotes.
+This repository uses **synthetic campaign metrics only**. Do not commit live ad-account data, credentials, API keys, PII, or partner briefs.

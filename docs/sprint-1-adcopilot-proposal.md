@@ -1,11 +1,10 @@
 # AdCopilot: An Explainable Diagnostic Copilot for Digital Advertisers
 
-**Sprint 1 individual proposal** (Problem Discovery & Solution Proposal)  
+**Sprint 1 proposal** (Problem Discovery & Solution Proposal)  
 **Author:** Richa Pragat  
-**Course:** III 49797, Advanced AI for Industry and Society, Fall 2026  
-**Submitted original:** [AdvancedAI_AdCopilotProposal_RichaPragat.pdf](AdvancedAI_AdCopilotProposal_RichaPragat.pdf)
+**Archival PDF:** [AdvancedAI_AdCopilotProposal_RichaPragat.pdf](AdvancedAI_AdCopilotProposal_RichaPragat.pdf)
 
-This markdown is a readable copy of the submitted PDF so agents can load full context without parsing the PDF.
+This markdown is a readable copy of the archival PDF so agents can load full context without parsing the PDF.
 
 ---
 

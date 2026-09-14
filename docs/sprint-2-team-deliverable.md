@@ -3,10 +3,9 @@
 **Problem Validation, Requirements & MVP Scope**  
 **Team:** AdDiagnose  
 **Members:** Richa Pragat, Lakshita Rahoria, Shatakshi Chaudhri, Aaron Weng, Yongje Shu, Arthur Jawetz  
-**Course:** III 49797, Advanced AI for Industry and Society, Fall 2026  
-**Submitted original:** [Sprint2Deliverable_TeamAdDiagnose.pdf](Sprint2Deliverable_TeamAdDiagnose.pdf)
+**Archival PDF:** [Sprint2Deliverable_TeamAdDiagnose.pdf](Sprint2Deliverable_TeamAdDiagnose.pdf)
 
-This markdown is a readable copy of the submitted PDF so agents can load full context without parsing the PDF. The PDF also includes a screenshot of the Google Ads Recommendations tab (Figure 1) that is not reproduced here.
+This markdown is a readable copy of the archival PDF so agents can load full context without parsing the PDF. The PDF also includes a screenshot of the Google Ads Recommendations tab (Figure 1) that is not reproduced here.
 
 When this document conflicts with the Sprint 1 proposal on **scope**, this document wins.
 

@@ -13,7 +13,7 @@ from adcopilot.generate import SCENARIOS, generate_campaign
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        description="AdCopilot Sprint 3 baseline: diagnose a seeded synthetic campaign."
+        description="AdCopilot: diagnose a seeded synthetic campaign."
     )
     parser.add_argument(
         "--scenario",

@@ -1,15 +1,15 @@
 # Agent instructions
 
-This repository is **Team AdDiagnose**'s private workspace for **AdCopilot** in CMU III 49797 (Special Topics: Advanced AI for Industry and Society, Fall 2026).
+This repository is **Team AdDiagnose**'s workspace for **AdCopilot**, an explainable CPA diagnostic copilot.
 
 ## Read this context before implementing
 
-Load these in order. Prefer the markdown copies; PDFs are the submitted originals.
+Load these in order. Prefer the markdown copies; PDFs are archival originals.
 
 1. [README.md](README.md): orientation, team, current MVP summary.
-2. [docs/sprint-1-adcopilot-proposal.md](docs/sprint-1-adcopilot-proposal.md): Richa Pragat's Sprint 1 proposal. Problem, landscape, metric identities, original solution shape, value proposition.
-3. [docs/sprint-2-team-deliverable.md](docs/sprint-2-team-deliverable.md): team Sprint 2 deliverable. Authoritative for users, use cases, functional requirements, MoSCoW, MVP contract, success bar.
-4. [docs/sprint-3-feasibility.md](docs/sprint-3-feasibility.md): Sprint 3 feasibility + baseline POC. Dashboard CPC/CVR rival, 700-campaign noisy eval, Proceed with Modification. Working code: `adcopilot/` (`evaluate.py` reproduces the tables).
+2. [docs/sprint-1-adcopilot-proposal.md](docs/sprint-1-adcopilot-proposal.md): original problem proposal. Problem, landscape, metric identities, original solution shape, value proposition.
+3. [docs/sprint-2-team-deliverable.md](docs/sprint-2-team-deliverable.md): team requirements deliverable. Authoritative for users, use cases, functional requirements, MoSCoW, MVP contract, success bar.
+4. [docs/sprint-3-feasibility.md](docs/sprint-3-feasibility.md): feasibility + baseline POC. Dashboard CPC/CVR rival, 700-campaign noisy eval, Proceed with Modification. Working code: `adcopilot/` (`evaluate.py` reproduces the tables).
 
 If Sprint 1 and Sprint 2 disagree on **scope**, follow Sprint 2. Use Sprint 1 for rationale, examples, and the metric identities (`CPA = CPC ÷ CVR`, `CPC = (CPM ÷ 1000) ÷ CTR`) when Sprint 2 is silent. Use Sprint 3 for diagnostic thresholds (70/40), log-share method, and baseline accuracy evidence against the dashboard heuristic; it does not expand product scope past Sprint 2. Auction Insights is Won't-Have (API field is not public).
 
@@ -26,8 +26,9 @@ Original PDFs:
 - Every claim in an explanation must cite named metrics and values.
 - Do not auto-execute bid, budget, or campaign changes.
 - Hold the Won't Have line unless the team explicitly expands scope: live platform integration, ML forecasting, automated fixes.
+- Never commit secrets, credentials, `.env` files with real values, or live account exports.
 
-## What "done" means this semester
+## What "done" means
 
 A user loads a campaign. The system flags an abnormal CPA movement, identifies the driving cause or refuses when ambiguous, and shows a plain-language, numbers-cited diagnosis in a usable interface, across all seeded scenarios (including the refusal case).
 

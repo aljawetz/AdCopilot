@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "adcopilot"
 version = "0.1.0"
-description = "Deterministic CPA diagnosis baseline for AdCopilot (Sprint 3)"
+description = "Explainable deterministic CPA diagnosis for digital advertisers"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = []
